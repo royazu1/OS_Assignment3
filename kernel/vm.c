@@ -15,6 +15,71 @@ extern char etext[];  // kernel.ld sets this to end of kernel code.
 
 extern char trampoline[]; // trampoline.S
 
+
+//ADDED ASS3
+enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+
+//added ass3
+// Mutual exclusion lock.
+struct spinlock {
+  uint locked;       // Is the lock held?
+
+  // For debugging:
+  char *name;        // Name of lock.
+  struct cpu *cpu;   // The cpu holding the lock.
+};
+
+struct context {
+  uint64 ra;
+  uint64 sp;
+
+  // callee-saved
+  uint64 s0;
+  uint64 s1;
+  uint64 s2;
+  uint64 s3;
+  uint64 s4;
+  uint64 s5;
+  uint64 s6;
+  uint64 s7;
+  uint64 s8;
+  uint64 s9;
+  uint64 s10;
+  uint64 s11;
+};
+//added ass3
+
+// Per-process state
+struct proc {
+  struct spinlock lock;
+
+  // p->lock must be held when using these:
+  enum procstate state;        // Process state
+  void *chan;                  // If non-zero, sleeping on chan
+  int killed;                  // If non-zero, have been killed
+  int xstate;                  // Exit status to be returned to parent's wait
+  int pid;                     // Process ID
+
+  // wait_lock must be held when using this:
+  struct proc *parent;         // Parent process
+
+  // these are private to the process, so p->lock need not be held.
+  uint64 kstack;               // Virtual address of kernel stack
+  uint64 sz;                   // Size of process memory (bytes)
+  pagetable_t pagetable;       // User page table
+  struct trapframe *trapframe; // data page for trampoline.S
+  struct context context;      // swtch() here to run process
+  struct file *ofile[NOFILE];  // Open files
+  struct inode *cwd;           // Current directory
+  char name[16];               // Process name (debugging)
+};
+
+//ADDED ASS3
+
+
+
+
+
 // Make a direct-map page table for the kernel.
 pagetable_t
 kvmmake(void)
@@ -164,6 +229,76 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   return 0;
 }
 
+
+
+//ADDED ASS3
+uint64 map_shared_pages(struct proc * src_proc,struct proc * dst_proc,uint64 src_va, uint64 size){ //what value should be returned on failure??
+  uint64 dst_size= dst_proc->sz;
+  //int permissions= PTE_U | PTE_S | PTE_R ; //user allowed to use, physical page is shared
+  uint64 offset= src_va-PGROUNDDOWN(src_va);
+  uint64 dst_va_off= PGROUNDUP(dst_proc->sz)+ offset;
+
+  printf("im in inner map src_va=%p\n", (uint64*) src_va); //up to here works great
+  for (uint64 va_dst= PGROUNDUP(dst_proc->sz); va_dst < PGROUNDUP(dst_size+size); va_dst+=PGSIZE, src_va+=PGSIZE) { //map each virtual mem page to a physical one (obtain free pages from kalloc)
+    printf("dst_va_curr=%p\n",(uint64*)va_dst);
+    pte_t * pte= walk(src_proc->pagetable,src_va,0); //ARE WE ASSUMING PTE'S ALREADY EXIST FOR THE SRC PAGES?
+    printf("pte from walk_addr is: %p\n",(uint64*)*pte);
+    if (pte == 0) {
+      printf("Page wasn't allocated at the src proc! exiting..\n");
+      return -1;
+    }
+    else { //pte is valid for this src page
+      printf("About to map this dst_va to pa\n");
+      if (mappages(dst_proc->pagetable, va_dst, PGSIZE ,PTE2PA(*pte), PTE_FLAGS(*pte) | PTE_S) == -1) {
+        printf("Couldn't allocate pages table pages for dst proc shared mapping!\n");
+        return -1;
+      }
+    }
+    printf("great success..\n");
+   
+  }
+
+  printf("old size=%d\n", dst_proc->sz);
+  dst_proc->sz+=size;
+  printf("new size=%d\n", dst_proc->sz);
+  //size should be updated as well
+  printf("returning the va for dst=%p..\n",(uint64*)dst_va_off);
+  return dst_va_off; //in case all mappings succeeded -  we return the first va WITH OFFSET, corresponding to src_va
+}
+//ADDED ASS3
+
+
+//ADDED ASS3
+int unmap_shared_pages(struct proc* p, uint64 addr, uint64 size){
+  printf("in unmap- size=%d\n",p->sz);
+  int num_pg_unmap= size / PGSIZE;
+  printf("num pages to unmap=%d\n",num_pg_unmap);
+  printf("addr=%d, max_va=%d\n",addr, PGROUNDUP(addr+size));
+  uint64 va_start;
+  for (va_start=PGROUNDDOWN(addr); va_start < PGROUNDUP(addr+size) && va_start < PGROUNDUP(p->sz) ; va_start+=PGSIZE) {
+    printf("va_start=%d < sz=%d\n", va_start ,PGROUNDUP(p->sz));
+    if (walk(p->pagetable,addr,0) == 0) { //if PTE isn't allocated for this page return -1 (if we were to just use uvmunmap the kernel would panic in uvmunmap)
+      printf("Trying to unmap a page frame with PTE invalid!\n");
+      return -1;
+    }
+    else { // the page wer'e trying to unmap is valid!
+      printf("pte in unmap=%p\n",(uint64*)*walk(p->pagetable,addr,0));    
+      uvmunmap(p->pagetable,va_start,1,1); //
+    }
+    printf("unmapped succ..\n");
+    printf("va_start=%d, sz=%d\n", va_start ,PGROUNDUP(p->sz));
+  }
+  uint64 new_size= PGROUNDUP(p->sz) - PGROUNDUP(size); //verify..
+  p->sz= new_size;
+  return 0;
+}
+//ADDED ASS3
+
+
+
+
+
+
 // Remove npages of mappings starting from va. va must be
 // page-aligned. The mappings must exist.
 // Optionally free the physical memory.
@@ -183,9 +318,11 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
       panic("uvmunmap: not mapped");
     if(PTE_FLAGS(*pte) == PTE_V)
       panic("uvmunmap: not a leaf");
-    if(do_free){
+    uint64 shared_mask=  *pte & PTE_S;  
+    if(do_free && shared_mask == 0){                     //MODIFIED THIS COND TO ZERO OUT THE PAGE FRAME ONLY WHEN THE PROC PTE INDICATES ITS PTE HAS PTE_S BIT UNSET!
+      printf("proc with pid=%d\n", myproc()->pid);    
       uint64 pa = PTE2PA(*pte);
-      kfree((void*)pa);
+      kfree((void*)pa);                      //THIS FREES THE ACTUAL PHYSICAL MEMORY!
     }
     *pte = 0;
   }

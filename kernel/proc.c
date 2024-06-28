@@ -30,6 +30,22 @@ struct spinlock wait_lock;
 int fs_initialized = 0;
 struct sleeplock fsinit_lock;
 
+
+//ADDED ASS3
+struct proc* find_proc(int pid) {
+  struct proc * p=0;
+  for (p=proc;p<proc+NPROC;p++) {
+    if (p->pid == pid) {
+      break;
+    }
+  }
+  if (p == proc+NPROC) {
+    p=0;
+  }
+  return p;
+}
+//ADDED ASS3
+
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
 // guard page.
@@ -217,7 +233,7 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
-  uvmfree(pagetable, sz);
+  uvmfree(pagetable, sz);                        
 }
 
 // a user program that calls exec("/init")

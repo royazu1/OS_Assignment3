@@ -6,6 +6,40 @@
 #include "spinlock.h"
 #include "proc.h"
 
+
+uint64 sys_memsize(void) {
+  return myproc()->sz;
+}
+
+uint64 sys_map_shared_pages(void) { // takes 3 args - the virtual address from src, size in bytes, the src_proc id
+  uint64 src_va=0;
+  argaddr(0, &src_va);
+  int src_pid,size_bytes;
+  argint(1,&size_bytes);
+  argint(2, &src_pid);
+  struct proc* p;
+ 
+  printf("pid=%d\n",src_pid);
+  if ((p=find_proc(src_pid))) {
+    printf("Calling inner map..p_addr=%p\n",p);
+    //printf("va=%u , size=%d, pid=%d..\n", src_va, size_bytes,src_pid);
+    return map_shared_pages(p, myproc(), src_va,size_bytes);
+  }
+  else {
+    return -2;
+  }
+  
+}
+
+uint64 sys_unmap_shared_pages(void) { //takes 2 args - the va to unmap from, size in bytes
+  uint64 va=0;
+  argaddr(0, &va);
+  int size_bytes;
+  argint(1,&size_bytes);
+  return unmap_shared_pages(myproc(),va,size_bytes);
+}
+
+
 uint64
 sys_exit(void)
 {

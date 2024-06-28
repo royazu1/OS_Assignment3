@@ -109,6 +109,9 @@ int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
 
+//ADDED ASS3
+struct proc * find_proc(int);
+//ADDED ASS3
 // shmem_queue.c
 void            shmem_queue_init(void);
 void            shmem_queue_insert(int src_pid, int dst_pid, uint64 src_va, uint64 size);
@@ -183,6 +186,12 @@ uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
+
+//ADDED ASS3
+uint64 map_shared_pages(struct proc* src_proc,struct proc* dst_proc,uint64 src_va, uint64 size); 
+int unmap_shared_pages(struct proc* p, uint64 addr, uint64 size);
+//ADDED ASS3
+
 
 // plic.c
 void            plicinit(void);

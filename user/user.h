@@ -27,6 +27,12 @@ int crypto_op(struct crypto_op*, int);
 int take_shared_memory_request(void**, uint64*);
 int remove_shared_memory_request(void*, uint64);
 
+//ADDED ASS3
+uint64 map_shared_pages(void*, int ,int);
+int unmap_shared_pages(void*,int);
+int memsize();
+//ADDED ASS3
+
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);
