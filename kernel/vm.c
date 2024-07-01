@@ -259,7 +259,7 @@ uint64 map_shared_pages(struct proc * src_proc,struct proc * dst_proc,uint64 src
   }
 
   printf("old size=%d\n", dst_proc->sz);
-  dst_proc->sz+=size;
+  dst_proc->sz= PGROUNDUP(dst_proc->sz)+size; 
   printf("new size=%d\n", dst_proc->sz);
   //size should be updated as well
   printf("returning the va for dst=%p..\n",(uint64*)dst_va_off);

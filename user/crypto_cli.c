@@ -2,7 +2,7 @@
 #include "kernel/crypto.h"
 #include "user/user.h"
 
-static const char message[] = {
+static const char message[] = {                                                   //50 BYTES HERE?
   0x1b, 0x3b, 0x5b, 0x43, 0x12, 0x5d, 0x3c, 0x73, 0x53, 0x10, 0x41, 0x51,
   0x2c, 0x21, 0x57, 0x44, 0x12, 0x47, 0x3b, 0x21, 0x5b, 0x5e, 0x55, 0x14,
   0x3b, 0x3c, 0x12, 0x52, 0x57, 0x14, 0x2b, 0x36, 0x51, 0x42, 0x4b, 0x44,
@@ -15,7 +15,7 @@ static const char key[] = "OS2024";
 int main (void) {
   printf("crypto_cli: attempting to decrypt message\n");
 
-  uint key_size = sizeof(key) - 1;
+  uint key_size = sizeof(key) - 1; //WITHOUT THE NULL CHAR
   uint data_size = sizeof(message);
 
   const uint op_size = sizeof(struct crypto_op) + key_size + data_size;
@@ -28,8 +28,9 @@ int main (void) {
 
   memcpy(op->payload, key, key_size);
   memcpy(op->payload + key_size, message, data_size);
-
-  crypto_op(op, op_size);
+  printf("crypto_cli: decrypted message: %s\n", op->payload + key_size); //ADDED
+  printf("Calling the crypt_op syscall\n");//ADDED
+  crypto_op(op, op_size);                                       //SIZE OF STRUCT + THE DATA ITSELF IS SENT TO THE SYSCALL
   
   volatile enum crypto_op_state* op_state = &op->state;
   while (*op_state == CRYPTO_OP_STATE_INIT)

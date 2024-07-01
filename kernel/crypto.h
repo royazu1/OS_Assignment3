@@ -16,5 +16,6 @@ struct crypto_op {
     uint64 key_size;
     uint64 data_size;
 
-    uchar payload[];
+    uchar payload[]; //I THINK FIRST KEY_SIZE BYTES ARE THE KEY_BYTES AND THE REST OF THE BYTES ARE DATA_BYTES - 
+                     //should call malloc here with key_size+data_size bytes to allocate.
 };

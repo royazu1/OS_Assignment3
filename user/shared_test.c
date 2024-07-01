@@ -4,7 +4,7 @@
 #include "kernel/fcntl.h"
 
 int main (int argc, char ** argv) {
-    char * str= "fml";
+    char str[4]= "fml";
     int parent_pid= getpid();
     printf("my pid=%d\n",parent_pid);
     printf("str_ptr=%p\n",str);
@@ -16,12 +16,14 @@ int main (int argc, char ** argv) {
         //str_offset++;
         //str_offset+=5;
         printf("The string of my parent is: %s\n",fml);
+        //fml[1]='Z';
         exit(0);
     }
     else {
         wait(0);
         printf("Parent here: child finished.. exiting\n");
-        //printf("str=%s\n",str);
+        str[1]='F';
+        printf("str=%s\n",str);
         exit(0);
     }
 }

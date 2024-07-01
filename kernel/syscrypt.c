@@ -25,7 +25,7 @@ static uchar crypto_srv_init_code[] = {
   0x00, 0x00, 0x00, 0x00
 };
 
-uint64 sys_crypto_op(void) {
+uint64 sys_crypto_op(void) {                        //THE SYSCALL FOR CLIENT- arg0- the crypto_op struct va_ptr, arg1- size_of(crypt struct)+ size_of(data_itself)
     // Crypto server process not initialized yet
     if (crypto_srv_proc == 0) {
         return -1;
@@ -35,17 +35,19 @@ uint64 sys_crypto_op(void) {
     uint64 size;
 
     argaddr(0, &crypto_op);
-    argaddr(1, &size);
+    argaddr(1, &size);              //SIZE DOESN'T REALLY HOLD ANY ADDRESS, WE CALL argaddr just to store it in an unsigned long..
 
     const struct proc *p = myproc();
 
     // Record crypto operation request in the shmem queue
+    printf("crypt_op syscall, inserting to Q\n");//ADDED
     shmem_queue_insert(p->pid, crypto_srv_proc->pid, crypto_op, size);
 
     return 0;
 }
 
-uint64 sys_take_shared_memory_request(void) {
+uint64 sys_take_shared_memory_request(void) { //arg0- addr of the new mapped addr ptr, arg1- pointer to size of new mapping
+  printf("systake entry\n"); //ADDED
   struct proc *p = myproc();
   if (crypto_srv_proc == 0 || p != crypto_srv_proc) {
       return -1;
@@ -63,6 +65,11 @@ uint64 sys_take_shared_memory_request(void) {
     release(&src_proc->lock);
     return -1;
   }
+  //ADDED
+  else { 
+    printf("systake - va_dst returned by map_shared is valid!\n");
+  }
+  //ADDED
 
   uint64 arg_dst_va;
   uint64 arg_dst_size;
@@ -71,11 +78,11 @@ uint64 sys_take_shared_memory_request(void) {
   copyout(p->pagetable, arg_dst_va, (char*)&dst_va, sizeof(dst_va));
   copyout(p->pagetable, arg_dst_size, (char*)&req.size, sizeof(req.size));
 
-  release(&src_proc->lock);
+  //release(&src_proc->lock); //I THINK THIS IS REDUNDANT
   return 0;
 }
 
-uint64 sys_remove_shared_memory_request(void) {
+uint64 sys_remove_shared_memory_request(void) { //arg0- the va to start removing from, arg1- size in bytes to remove
   struct proc *p = myproc();
   if (crypto_srv_proc == 0 || p != crypto_srv_proc) {
       return -1;
@@ -94,7 +101,7 @@ uint64 sys_remove_shared_memory_request(void) {
 void
 crypto_srv_init(void)
 {
-  struct proc* p = allocproc();
+  struct proc* p = allocproc(); //LOCK IS HELD HERE! that's why we have to release it at the end of this call
   crypto_srv_proc = p;
   
   // allocate one user page and copy the crypto_srv_init_code

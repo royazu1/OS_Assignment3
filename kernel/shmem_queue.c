@@ -43,9 +43,11 @@ void
 shmem_queue_insert(int src_pid, int dst_pid, uint64 src_va, uint64 size)
 {
   acquire(&shmem_queue.lock);
-
-  while (shmem_queue.write_idx == shmem_queue.read_idx - 1)
+  printf("shmQ acquired lk\n");
+  while (shmem_queue.write_idx == shmem_queue.read_idx - 1 ) {
+      printf("sleeping waiting for removal..\n"); //ADDED
       sleep(&shmem_queue, &shmem_queue.lock);
+  }
 
   const uint idx = shmem_queue.write_idx;
   shmem_queue.requests[idx].src_pid = src_pid;
@@ -58,9 +60,10 @@ shmem_queue_insert(int src_pid, int dst_pid, uint64 src_va, uint64 size)
   if (shmem_queue.read_idx == -1)
       shmem_queue.read_idx = 0;
 
-  wakeup(&shmem_queue);
+  wakeup(&shmem_queue); //THIS IS PROBABLY TO WAKE-UP THE PROC SLEEPING ON REMOVE_REQ
 
-  release(&shmem_queue.lock);
+  release(&shmem_queue.lock); 
+  printf("shmQ insrt exiting\n"); //ADDED
 }
 
 struct shmem_request
@@ -72,12 +75,12 @@ shmem_queue_remove(void)
       sleep(&shmem_queue, &shmem_queue.lock);
 
   const uint idx = shmem_queue.read_idx;
-  const struct shmem_request req = shmem_queue.requests[idx];
+  const struct shmem_request req = shmem_queue.requests[idx]; //THE REQUEST STRUCT WE RETURN
   shmem_request_init(&shmem_queue.requests[idx]);
 
   shmem_queue.read_idx = (shmem_queue.read_idx + 1) % NSHMEM_REQS;
 
-  wakeup(&shmem_queue);
+  wakeup(&shmem_queue); //THIS IS PROBABLY TO WAKE-UP THE PROC SLEEPING ON INSERT_REQ
 
   release(&shmem_queue.lock);
 
