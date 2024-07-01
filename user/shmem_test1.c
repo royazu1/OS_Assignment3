@@ -7,8 +7,8 @@ int main(int argc, char **argv)
 {
     char str[] = "Hello child";
     int parent_pid = getpid();
-    printf("my pid=%d\n", parent_pid);
-    printf("str_ptr=%p\n", str);
+    //printf("my pid=%d\n", parent_pid);
+    //printf("str_ptr=%p\n", str);
     uint64 size;
     if (fork() == 0)
     {
@@ -24,7 +24,7 @@ int main(int argc, char **argv)
         wait(0);
         printf("Parent here: child finished.. exiting\n");
         // str[1] = 'F';
-        printf("str=%s\n", str);
+        //printf("str=%s\n", str);
         exit(0);
     }
 }

@@ -6,13 +6,13 @@ int main(int argc, char **argv)
 {
     char str[12];
     int parent_pid = getpid();
-    printf("my pid=%d\n", parent_pid);
-    printf("str_ptr=%p\n", str);
+    //printf("my pid=%d\n", parent_pid);
+    //printf("str_ptr=%p\n", str);
     uint64 s;
     if (fork() == 0)
     {
         printf("size before map: %d\n", memsize());
-        uint64 str_offset = map_shared_pages((void *)str, 4096, parent_pid, &s);
+        uint64 str_offset = map_shared_pages((void *)str, 40, parent_pid, &s);
         char *fml = (char *)str_offset;
         memcpy(fml, "Hello daddy", 12);
         printf("The string of my parent is: %s\n", fml);
@@ -22,7 +22,7 @@ int main(int argc, char **argv)
             printf("Child unmapped succ..\n");
             printf("size after unmap: %l\n", s);
             void *p = malloc(2048);
-            printf("size after malloc %d", memsize());
+            printf("size after malloc %d\n", memsize());
             free(p);
         }
         else
@@ -36,7 +36,7 @@ int main(int argc, char **argv)
         sleep(20);
         printf("%s\n", str);
         printf("Parent here: child finished.. exiting\n");
-        // printf("str=%s\n",str);
+        printf("the string should still be valid here: str=%s\n",str);
         exit(0);
     }
 }

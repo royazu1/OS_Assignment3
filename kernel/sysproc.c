@@ -22,11 +22,8 @@ uint64 sys_map_shared_pages(void)
   argaddr(3, &szptr);
   struct proc *p;
 
-  printf("pid=%d\n", src_pid);
   if ((p = find_proc(src_pid)))
   {
-    printf("Calling inner map..p_addr=%p\n", p);
-    // printf("va=%u , size=%d, pid=%d..\n", src_va, size_bytes,src_pid);
     uint64 res = map_shared_pages(p, myproc(), src_va, size_bytes);
     copyout(myproc()->pagetable, szptr, (char *)(&myproc()->sz), sizeof(uint64));
     return res;
