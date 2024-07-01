@@ -6,39 +6,50 @@
 #include "spinlock.h"
 #include "proc.h"
 
-
-uint64 sys_memsize(void) {
+uint64 sys_memsize(void)
+{
   return myproc()->sz;
 }
 
-uint64 sys_map_shared_pages(void) { // takes 3 args - the virtual address from src, size in bytes, the src_proc id
-  uint64 src_va=0;
+uint64 sys_map_shared_pages(void)
+{ // takes 3 args - the virtual address from src, size in bytes, the src_proc id
+  uint64 src_va = 0;
+  uint64 szptr;
   argaddr(0, &src_va);
-  int src_pid,size_bytes;
-  argint(1,&size_bytes);
+  int src_pid, size_bytes;
+  argint(1, &size_bytes);
   argint(2, &src_pid);
-  struct proc* p;
- 
-  printf("pid=%d\n",src_pid);
-  if ((p=find_proc(src_pid))) {
-    printf("Calling inner map..p_addr=%p\n",p);
-    //printf("va=%u , size=%d, pid=%d..\n", src_va, size_bytes,src_pid);
-    return map_shared_pages(p, myproc(), src_va,size_bytes);
+  argaddr(3, &szptr);
+  struct proc *p;
+
+  printf("pid=%d\n", src_pid);
+  if ((p = find_proc(src_pid)))
+  {
+    printf("Calling inner map..p_addr=%p\n", p);
+    // printf("va=%u , size=%d, pid=%d..\n", src_va, size_bytes,src_pid);
+    uint64 res = map_shared_pages(p, myproc(), src_va, size_bytes);
+    copyout(myproc()->pagetable, szptr, (char *)(&myproc()->sz), sizeof(uint64));
+    return res;
   }
-  else {
-    return -2;
+  else
+  {
+    copyout(myproc()->pagetable, szptr, (char *)(&myproc()->sz), sizeof(uint64));
+    return 0;
   }
-  
 }
 
-uint64 sys_unmap_shared_pages(void) { //takes 2 args - the va to unmap from, size in bytes
-  uint64 va=0;
+uint64 sys_unmap_shared_pages(void)
+{ // takes 2 args - the va to unmap from, size in bytes
+  uint64 va = 0;
+  uint64 szptr;
   argaddr(0, &va);
   int size_bytes;
-  argint(1,&size_bytes);
-  return unmap_shared_pages(myproc(),va,size_bytes);
+  argint(1, &size_bytes);
+  argaddr(2, &szptr);
+  int res = unmap_shared_pages(myproc(), va, size_bytes);
+  copyout(myproc()->pagetable, szptr, (char *)(&myproc()->sz), sizeof(uint64));
+  return res;
 }
-
 
 uint64
 sys_exit(void)
@@ -46,7 +57,7 @@ sys_exit(void)
   int n;
   argint(0, &n);
   exit(n);
-  return 0;  // not reached
+  return 0; // not reached
 }
 
 uint64
@@ -77,7 +88,7 @@ sys_sbrk(void)
 
   argint(0, &n);
   addr = myproc()->sz;
-  if(growproc(n) < 0)
+  if (growproc(n) < 0)
     return -1;
   return addr;
 }
@@ -91,8 +102,10 @@ sys_sleep(void)
   argint(0, &n);
   acquire(&tickslock);
   ticks0 = ticks;
-  while(ticks - ticks0 < n){
-    if(killed(myproc())){
+  while (ticks - ticks0 < n)
+  {
+    if (killed(myproc()))
+    {
       release(&tickslock);
       return -1;
     }
