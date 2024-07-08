@@ -81,10 +81,11 @@ malloc(uint nbytes)
         p->s.size = nunits;
       }
       freep = prevp;
-      return (void*)(p + 1);
+      return (void*)(p + 1); //the free space start immidately after the HEADER information at the beginning.. hence the p+1
     }
     if(p == freep)
       if((p = morecore(nunits)) == 0)
         return 0;
   }
+  
 }

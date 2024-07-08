@@ -11,19 +11,20 @@ int main(int argc, char **argv)
     uint64 s;
     if (fork() == 0)
     {
-        printf("size before map: %d\n", memsize());
+        printf("size before map: %l\n", (uint64)sbrk(0));
         uint64 str_offset = map_shared_pages((void *)str, 40, parent_pid, &s);
         char *fml = (char *)str_offset;
         memcpy(fml, "Hello daddy", 12);
         printf("The string of my parent is: %s\n", fml);
-        printf("size after map: %l\n", s);
+        printf("size after map: %l\n", (uint64)sbrk(0));
         if (unmap_shared_pages((void *)str_offset, 4096, &s) == 0)
         {
             printf("Child unmapped succ..\n");
-            printf("size after unmap: %l\n", s);
+            printf("size after unmap: %l\n", (uint64)sbrk(0));
             void *p = malloc(2048);
-            printf("size after malloc %d\n", memsize());
+            printf("size after malloc() %l\n", (uint64)sbrk(0));
             free(p);
+            printf("size after free() %l\n", (uint64)sbrk(0));
         }
         else
         {

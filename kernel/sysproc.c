@@ -6,10 +6,6 @@
 #include "spinlock.h"
 #include "proc.h"
 
-uint64 sys_memsize(void)
-{
-  return myproc()->sz;
-}
 
 uint64 sys_map_shared_pages(void)
 { // takes 3 args - the virtual address from src, size in bytes, the src_proc id
@@ -85,7 +81,7 @@ sys_sbrk(void)
 
   argint(0, &n);
   addr = myproc()->sz;
-  if (growproc(n) < 0)
+  if (growproc(n) < 0) //finds and allocates physical pages from the free-pages list, to accomodate the new size , //growproc() updates the size to include the new virtual-pages that were mapped to the page-frames
     return -1;
   return addr;
 }

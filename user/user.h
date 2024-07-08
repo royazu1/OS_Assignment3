@@ -30,7 +30,6 @@ int remove_shared_memory_request(void *, uint64);
 // ADDED ASS3
 uint64 map_shared_pages(void *, int, int, uint64 *);
 int unmap_shared_pages(void *, int, uint64 *);
-int memsize();
 // ADDED ASS3
 
 // ulib.c
